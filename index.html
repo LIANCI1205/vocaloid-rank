@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="google" content="notranslate">
-    <title>术曲榜 - Vocaloid Rank</title>
+    <title>Vocaloid Rank</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // 🚨 全局错误报警器：只要页面卡住/报错，立刻弹窗
         window.onerror = function(msg, url, line, col, error) {
-            alert("网页报错啦！\n错误信息: " + msg + "\n行号: " + line);
+            alert("Page Error: " + msg + "\nLine: " + line);
             return false;
         };
     </script>
@@ -18,88 +17,82 @@
         body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
         .accent { color: #39C5BB; }
         .btn-accent { background-color: #39C5BB; color: #0f172a; font-weight: bold; }
-        .btn-accent:hover { background-color: #2da89f; }
         .tab-active { border-bottom: 3px solid #39C5BB; color: #39C5BB; }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="pb-20">
 
-    <!-- 登录界面（未登录时显示） -->
+    <!-- Auth Screen -->
     <div id="auth-screen" class="fixed inset-0 bg-[#0f172a] z-[100] flex flex-col items-center justify-center p-6">
-        <h1 class="text-3xl font-bold accent mb-2">🎵 术曲榜</h1>
-        <p class="text-gray-400 text-sm mb-8">登录 / 注册</p>
+        <h1 class="text-3xl font-bold accent mb-2">🎵 Vocaloid Rank</h1>
+        <p class="text-gray-400 text-sm mb-8">Login / Register</p>
         
         <div class="w-full max-w-xs">
             <div class="flex flex-col items-center mb-6">
                 <div class="w-20 h-20 rounded-full bg-gray-700 border-2 border-dashed border-gray-500 flex items-center justify-center overflow-hidden relative cursor-pointer" onclick="document.getElementById('avatar-input').click()">
                     <img id="avatar-preview" src="https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-xs opacity-0 hover:opacity-100">点击上传</div>
                 </div>
                 <input type="file" id="avatar-input" accept="image/*" class="hidden" onchange="previewAvatar(event)">
-                <span class="text-[10px] text-gray-500 mt-2">点击上传头像（可选）</span>
+                <span class="text-[10px] text-gray-500 mt-2">Upload Avatar (Optional)</span>
             </div>
 
-            <input type="tel" id="phone" placeholder="手机号" class="w-full bg-gray-800 rounded p-3 mb-3 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
-            <input type="password" id="password" placeholder="密码 (至少6位)" class="w-full bg-gray-800 rounded p-3 mb-6 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
+            <input type="tel" id="phone" placeholder="Phone Number" class="w-full bg-gray-800 rounded p-3 mb-3 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
+            <input type="password" id="password" placeholder="Password (min 6 chars)" class="w-full bg-gray-800 rounded p-3 mb-6 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
             
-            <button id="auth-btn" class="w-full btn-accent py-3 rounded-lg mb-3">登录 / 注册</button>
-            <p class="text-xs text-gray-500 text-center">第一次输入手机号和密码将自动注册</p>
+            <button id="auth-btn" class="w-full btn-accent py-3 rounded-lg mb-3">Login / Register</button>
+            <p class="text-xs text-gray-500 text-center">New users will be registered automatically.</p>
         </div>
     </div>
 
-    <!-- 主应用界面（登录后显示） -->
+    <!-- App Screen -->
     <div id="app-container" class="hidden">
-        <!-- 顶部导航 -->
         <header class="p-4 flex justify-between items-center border-b border-gray-700 sticky top-0 bg-[#0f172a] z-10">
-            <h1 class="text-xl font-bold accent">🎵 术曲榜</h1>
+            <h1 class="text-xl font-bold accent">🎵 Vocaloid Rank</h1>
             <div class="flex items-center gap-3">
                 <img id="user-avatar" src="" class="w-8 h-8 rounded-full bg-gray-700 object-cover">
-                <button onclick="logout()" class="text-xs text-red-400 border border-red-400 px-2 py-1 rounded">退出</button>
+                <button onclick="logout()" class="text-xs text-red-400 border border-red-400 px-2 py-1 rounded">Logout</button>
             </div>
         </header>
 
-        <!-- 视图1：首页 (卡片网格) -->
         <main id="view-home" class="p-4">
-            <h2 class="text-lg font-bold mb-4">热门推荐</h2>
+            <h2 class="text-lg font-bold mb-4">Hot Songs</h2>
             <div id="home-grid" class="grid grid-cols-2 gap-3"></div>
         </main>
 
-        <!-- 视图2：排行榜 -->
         <main id="view-rank" class="hidden">
             <div class="flex justify-center space-x-8 mt-2 border-b border-gray-700 pb-2">
-                <button onclick="switchTab('week')" id="tab-week" class="tab-active pb-2 px-2">周榜</button>
-                <button onclick="switchTab('month')" id="tab-month" class="pb-2 px-2 text-gray-400">月榜</button>
-                <button onclick="switchTab('all')" id="tab-all" class="pb-2 px-2 text-gray-400">总榜</button>
+                <button onclick="switchTab('week')" id="tab-week" class="tab-active pb-2 px-2">Weekly</button>
+                <button onclick="switchTab('month')" id="tab-month" class="pb-2 px-2 text-gray-400">Monthly</button>
+                <button onclick="switchTab('all')" id="tab-all" class="pb-2 px-2 text-gray-400">All-Time</button>
             </div>
             <div id="rank-list" class="p-4 space-y-3"></div>
         </main>
 
-        <!-- 底部导航栏 -->
         <nav class="fixed bottom-0 w-full bg-[#0f172a] border-t border-gray-700 flex justify-around items-center h-16 z-50">
             <button onclick="switchView('home')" id="nav-home" class="flex flex-col items-center text-[#39C5BB] w-1/2">
                 <span class="text-lg">🏠</span>
-                <span class="text-[10px] mt-1">首页</span>
+                <span class="text-[10px] mt-1">Home</span>
             </button>
             <button onclick="switchView('rank')" id="nav-rank" class="flex flex-col items-center text-gray-500 w-1/2">
                 <span class="text-lg">🏆</span>
-                <span class="text-[10px] mt-1">排行榜</span>
+                <span class="text-[10px] mt-1">Ranking</span>
             </button>
         </nav>
     </div>
 
-    <!-- 投票弹窗 -->
+    <!-- Vote Modal -->
     <div id="vote-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[110] p-4">
         <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm text-center">
-            <h2 class="text-lg font-bold mb-2">为歌曲投票</h2>
+            <h2 class="text-lg font-bold mb-2">Vote for Song</h2>
             <p id="vote-song-title" class="text-sm text-gray-400 mb-4"></p>
             <div class="flex items-center justify-center space-x-4 mb-4">
                 <button onclick="adjustVote(-1)" class="w-10 h-10 rounded-full bg-gray-700 text-xl font-bold">-</button>
                 <span id="vote-amount" class="text-2xl font-bold accent">1</span>
                 <button onclick="adjustVote(1)" class="w-10 h-10 rounded-full bg-gray-700 text-xl font-bold">+</button>
             </div>
-            <button onclick="submitVote()" class="w-full btn-accent py-2 rounded mb-2">确认投票</button>
-            <button onclick="hideVote()" class="w-full text-gray-400 text-sm py-1">取消</button>
+            <button onclick="submitVote()" class="w-full btn-accent py-2 rounded mb-2">Confirm Vote</button>
+            <button onclick="hideVote()" class="w-full text-gray-400 text-sm py-1">Cancel</button>
         </div>
     </div>
 
@@ -108,7 +101,7 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
         
         if (typeof supabase === 'undefined') {
-            alert("Supabase 库加载失败，请检查网络或刷新页面！");
+            alert("Supabase library failed to load. Please check network.");
         }
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -128,10 +121,9 @@
             }
         }
 
-        // 绑定按钮点击事件（防手机端失效）
         document.getElementById('auth-btn').addEventListener('click', async function() {
             const btn = this;
-            btn.innerText = '处理中...';
+            btn.innerText = 'Processing...';
             btn.disabled = true;
 
             try {
@@ -139,27 +131,24 @@
                 const password = document.getElementById('password').value.trim();
                 const avatarInput = document.getElementById('avatar-input');
                 
-                if (!phone || !password) throw new Error('请输入手机号和密码');
-                if (password.length < 6) throw new Error('密码至少6位');
+                if (!phone || !password) throw new Error('Please enter phone and password.');
+                if (password.length < 6) throw new Error('Password must be at least 6 characters.');
 
                 const fakeEmail = `${phone}@phone.com`;
                 
-                // 尝试登录
                 let { data, error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password });
                 
                 if (error) {
-                    // 登录失败，走注册流程
                     let avatarUrl = null;
                     if (avatarInput.files[0]) {
                         const file = avatarInput.files[0];
                         const fileExt = file.name.split('.').pop();
                         const fileName = `${Date.now()}.${fileExt}`;
                         
-                        // 上传到 '头像' 桶（对应你之前建的桶名）
-                        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('头像').upload(fileName, file);
-                        if (uploadError) throw new Error('头像上传失败: ' + uploadError.message);
+                        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('avatars').upload(fileName, file);
+                        if (uploadError) throw new Error('Avatar Upload Failed: ' + uploadError.message);
                         
-                        const { data: urlData } = supabaseClient.storage.from('头像').getPublicUrl(fileName);
+                        const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
                         avatarUrl = urlData.publicUrl;
                     }
 
@@ -169,15 +158,14 @@
                         options: { data: { avatar_url: avatarUrl } }
                     });
                     
-                    if (signUpError) throw new Error('注册失败: ' + signUpError.message);
+                    if (signUpError) throw new Error('Registration Failed: ' + signUpError.message);
                     currentUser = signUpData.user;
-                    alert('注册成功！');
+                    alert('Registration Successful!');
                 } else {
                     currentUser = data.user;
-                    alert('登录成功！');
+                    alert('Login Successful!');
                 }
                 
-                // 进入主界面
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 const finalAvatar = currentUser.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
@@ -186,9 +174,9 @@
                 await fetchData();
                 
             } catch (err) {
-                alert("操作失败：\n" + err.message);
+                alert("Error: \n" + err.message);
             } finally {
-                btn.innerText = '登录 / 注册';
+                btn.innerText = 'Login / Register';
                 btn.disabled = false;
             }
         });
@@ -242,14 +230,14 @@
                 renderHome();
                 renderRank();
             } catch (err) {
-                alert('数据加载失败，请检查 Supabase 数据库中是否有 songs 和 votes 表。\n错误: ' + err.message);
+                alert('Data Load Failed. Please check Supabase tables.\nError: ' + err.message);
             }
         }
 
         function renderHome() {
             const grid = document.getElementById('home-grid');
             if (allSongs.length === 0) {
-                grid.innerHTML = '<p class="col-span-2 text-center text-gray-500 text-sm mt-10">暂无歌曲，请去 Supabase 添加歌曲</p>';
+                grid.innerHTML = '<p class="col-span-2 text-center text-gray-500 text-sm mt-10">No songs yet. Add songs in Supabase.</p>';
                 return;
             }
             grid.innerHTML = allSongs.map(song => `
@@ -262,7 +250,7 @@
                         </div>
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-[10px] text-gray-500">${song.platform}</span>
-                            <button onclick="openVote('${song.id}', '${song.title}')" class="text-[10px] btn-accent px-2 py-1 rounded">投票</button>
+                            <button onclick="openVote('${song.id}', '${song.title}')" class="text-[10px] btn-accent px-2 py-1 rounded">Vote</button>
                         </div>
                     </div>
                 </div>
@@ -294,7 +282,7 @@
             const sortedSongs = [...allSongs].sort((a, b) => (voteMap[b.id] || 0) - (voteMap[a.id] || 0));
 
             if (sortedSongs.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10">当前榜单暂无歌曲</p>';
+                listEl.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10">No songs in this chart.</p>';
                 return;
             }
 
@@ -307,11 +295,11 @@
                     <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-sm truncate">${song.title}</h3>
                         <p class="text-[10px] text-gray-400 truncate">${song.producer} / ${song.vocals}</p>
-                        <p class="text-[10px] text-gray-500 mt-1">来源: ${song.platform}</p>
+                        <p class="text-[10px] text-gray-500 mt-1">${song.platform}</p>
                     </div>
                     <div class="text-right">
-                        <div class="text-md font-bold accent">${voteCount} 票</div>
-                        <button onclick="openVote('${song.id}', '${song.title}')" class="text-[10px] btn-accent px-2 py-1 rounded mt-1">投票</button>
+                        <div class="text-md font-bold accent">${voteCount} Votes</div>
+                        <button onclick="openVote('${song.id}', '${song.title}')" class="text-[10px] btn-accent px-2 py-1 rounded mt-1">Vote</button>
                     </div>
                 </div>
                 `;
@@ -348,7 +336,7 @@
         async function submitVote() {
             if (!currentUser) return;
             const remaining = await fetchVoteCount();
-            if (currentVoteAmount > remaining) return alert(`你今天的票数不够啦！剩余: ${remaining} 票`);
+            if (currentVoteAmount > remaining) return alert(`Not enough votes! Remaining: ${remaining}`);
 
             const todayStart = new Date();
             todayStart.setHours(0,0,0,0);
@@ -360,7 +348,7 @@
                 await supabaseClient.from('votes').insert([{ user_id: currentUser.id, song_id: selectedSongId, vote_count: currentVoteAmount }]);
             }
             hideVote();
-            alert('投票成功！');
+            alert('Vote Successful!');
             fetchData();
         }
 
