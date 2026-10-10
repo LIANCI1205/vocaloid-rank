@@ -1,0 +1,231 @@
+<！doctype超文本标记语言>
+<超文本标记语言朗="zh-CN">
+<头>
+<元字符集="UTF-8">
+    <元 姓名="视口" 内容="宽度=设备宽度，初始比例=1.0">
+    <标题>术曲榜</标题>
+<剧本src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></脚本>
+<风格>
+身体{字体系列：system-ui、-apple-系统，无衬线；背景：#f9f9f9；边缘：0；填充：16px；颜色：#333；}
+.页眉{显示：弯曲；justify-content：间距；对齐项目：中心；底边距：20PX；}
+.页眉H1{字体大小：22px；边缘：0；颜色：#e60012；}
+.auth-btn{背景：#333；颜色：#FFF；边界：没有一个；填充：8px16px；边界半径：6px；字体大小：14px；}
+.auth-btn.已登录{背景：#e60012；}
+.选项卡{显示：弯曲；差距：8PX；底边距：20px；}
+.标签{弯曲：1；文本对齐：中心；填充：8PX；背景：#FFF；边界：1PX固体#ddd；边界半径：6px；字体大小：14px；}
+.标签.活跃的{背景：#e60012；颜色：#FFF；边框颜色：#e60012；}
+.歌单 { 显示: 弯曲; 挠曲方向: 柱; 差距: 12PX; }
+.歌曲卡片{背景：#FFF；填充：12px；边界半径：8px；箱形阴影：01PX3PX RGBA(0,0,0,0.05);显示：弯曲；对齐项目：中心；差距：12px；}
+.覆盖{宽度：50px；高度：50px；背景：#Eee；边界半径：6px；对象拟合：覆盖；}
+.信息 { 弯曲: 1; 显示: 弯曲; 挠曲方向: 柱; 差距: 4PX; }
+.题目{字体粗细：大胆；字体大小：15px；}
+.元{字体大小：12px；颜色：#888；}
+.投票-btn{背景：#e60012；颜色：#FFF；边界：没有一个；填充：6px12px；边界半径：6px；字体大小：13px；字体粗细：大胆的；}
+.投票-btn：禁用{背景：#CCC；}
+.计价票{字体大小：12px；颜色：#e60012；字体粗细：大胆的；文本对齐：正确的；}
+.模态的{显示：没有一个；位置：确定的；顶端：0；左：0；宽度：100%；高度：100%；背景：RGBA(0,0,0,0.5); justify-content：中心；对齐项目：中心；Z指数：1000；}
+.模式内容{背景：#FFF；填充：20px；边界半径：12px；宽度：80%；最大宽度：320px；}
+形态内容入口{宽度：100%；填充：10px；底距：10px；边界：1px固体#ddd；边界半径：6px；箱体尺寸：边框框；}
+.模态内容按钮{宽度：100%；填充：10PX；背景：#e60012；颜色：#FFF；边境：没有一个；边界半径：6PX；字体粗细：大胆的；底边距：8PX；}
+.开关连杆{字体大小：12px；颜色：#e60012；文本对齐：中心；显示：块；上边距：5px；}
+</风格>
+</头>
+<身体>
+
+<div班级="页眉">
+<H1>术曲榜</H1>
+<按钮身份标识="authBtn"班级="auth-btn">登录</按钮>
+</div>
+
+<div班级="标签"身份标识="标签">
+<div班级="选项卡激活"数据类型="周">周榜</div>
+<div班级="选项卡"数量类型="月">榜单</div>
+<div班级="选项卡"数据类型="all">总榜</div>
+</div>
+
+<div班级="歌曲列表"身份标识="歌曲列表">
+<div风格="文本对齐：中心；颜色：#888；上边距：20px；">加载中...</div>
+</div>
+
+<! -- 登录/注册弹窗 -->
+<div 班级="modal" 身份标识="authModal">
+    <div 班级="modal-content">
+        <h3 身份标识="modalTitle" 风格="上边距: 0; 文本对齐: 中心;">登录</h3>
+        <输入 type="email" 身份标识="email" 占位符="邮箱">
+        <input type="password" id="password" placeholder="密码">
+        <button id="submitAuth">登录</button>
+        <span class="switch-link" id="switchAuth">没有账号？注册</span>
+        <span class="switch-link" id="closeModal" style="color: #888; margin-top: 10px;">关闭</span>
+    </div>
+</div>
+
+<script>
+    // 填入你的 Supabase 信息
+    const SUPABASE_URL = 'https://bqhrrqcflobfqgayrrei.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let currentTab = 'week';
+    let isRegistering = false;
+    let allSongs = [];
+    let allVotes = [];
+
+    // 初始化
+    async function init() {
+        // 检查登录状态
+        const { data: { session } } = await supabase.auth.getSession();
+        currentUser = session?.user || null;
+        updateAuthUI();
+
+        // 监听登录状态变化
+        supabase.auth.onAuthStateChange((_event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            loadData();
+        });
+
+        // 加载数据
+        await loadData();
+
+        // 绑定事件
+        document.getElementById('authBtn').addEventListener('click', () => {
+            if (currentUser) {
+                supabase.auth.signOut();
+            } else {
+                document.getElementById('authModal').style.display = 'flex';
+            }
+        });
+
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab')) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = e.target.dataset.type;
+                renderSongs();
+            }
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('authModal').style.display = 'none';
+        });
+
+        document.getElementById('switchAuth').addEventListener('click', () => {
+            isRegistering = !isRegistering;
+            document.getElementById('modalTitle').textContent = isRegistering ? '注册' : '登录';
+            document.getElementById('submitAuth').textContent = isRegistering ? '注册' : '登录';
+            document.getElementById('switchAuth').textContent = isRegistering ? '已有账号？去登录' : '没有账号？注册';
+        });
+
+        document.getElementById('submitAuth').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (isRegistering) {
+                const { error } = await supabase.auth.signUp({ email, password });
+                if (error) return alert('注册失败：' + error.message);
+                alert('注册成功，请登录！');
+                isRegistering = false;
+                document.getElementById('modalTitle').textContent = '登录';
+                document.getElementById('submitAuth').textContent = '登录';
+                document.getElementById('switchAuth').textContent = '没有账号？注册';
+            } else {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) return alert('登录失败：' + error.message);
+                document.getElementById('authModal').style.display = 'none';
+            }
+        });
+    }
+
+    function updateAuthUI() {
+        const btn = document.getElementById('authBtn');
+        if (currentUser) {
+            btn.textContent = '退出 (' + (currentUser.email?.split('@')[0] || '用户') + ')';
+            btn.classList.add('logged-in');
+        } else {
+            btn.textContent = '登录';
+            btn.classList.remove('logged-in');
+        }
+    }
+
+    async function loadData() {
+        document.getElementById('songList').innerHTML = '<div style="text-align: center; color: #888; margin-top: 20px;">加载中...</div>';
+        // 获取所有歌曲
+        const { data: songs } = await supabase.from('songs').select('*').order('id', { ascending: true });
+        // 获取所有投票
+        const { data: votes } = await supabase.from('votes').select('*');
+        
+        allSongs = songs || [];
+        allVotes = votes || [];
+        renderSongs();
+    }
+
+    function renderSongs() {
+        const listDiv = document.getElementById('songList');
+        if (allSongs.length === 0) {
+            listDiv.innerHTML = '<div style="text-align: center; color: #888; margin-top: 20px;">还没有歌曲，请管理员去后台添加。</div>';
+            return;
+        }
+
+        // 根据时间筛选投票
+        const now = new Date();
+        let filteredVotes = allVotes;
+
+        if (currentTab === 'week') {
+            // 本周一 00:00
+            const day = now.getDay() || 7; // 周日算 7
+            const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            filteredVotes = allVotes.filter(v => new Date(v.created_at) >= monday);
+        } else if (currentTab === 'month') {
+            // 本月 1 号 00:00
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            filteredVotes = allVotes.filter(v => new Date(v.created_at) >= firstDay);
+}
+
+        // 计算票数/超文本标记语言>// 计算票数/超文本标记语言>// 计算票数/超文本标记语言>// 计算票数/超文本标记语言>
+// 计算票数/超文本标记语言>// 计算票数/超文本标记语言>// 计算票数/超文本标记语言>// 计算票数/超文本标记语言>
+||
+// 计算票数/超文本标记语言>/剧本>/剧本>
+        
+
+=
+/剧本>歌曲alt||'https://通过.占位符/50'}"alt="cover">song.cover||'HTTPS:/com/通过占位符。com>div风格="字体粗细：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${排名}<#888'}；">${rank}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rankdiv>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<通过占位符.com/50'}"alt="cover">imgclass="cover"src="${song.覆盖||'HTTPS://通过.占位符。com/50'}"alt="cover">歌曲.覆盖||'https://via.placeholder.com/50'}"alt="cover">imgclass="cover"src="${song。覆盖||'https://via.placeholder.cOm/50'}"alt="cover">；=投票计数[b.身份标准]n-0；=投票计数[b.身份标准]n-0；=投票计数[}"alt="cover">；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标准]||；=投票计数[b.身份标888'}；">${rank}</div> div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div>div<srcIMG"盖""盖"div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<#888'}；">${rank}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rankdiv>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div> div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div> div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<通过占位符。com/50'}"alt="cover">imgclass="cover"src="${song.覆盖||'HTTPS:]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。身份标识]。身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。身份标识]。ID]||0；=voteCounts[b.id]||<div class="title">${song.title}</div>div class="title">${song.title}<="cover"s r C="${song。覆盖||'HTTPS://通过。placeholder.com/50'}"alt="cover">歌曲.覆盖||'https://via.placeholder.com/50'}"alt="cover">img类s="cover"src="${song.cover||投票计数}"alt="cover">；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]。ID]||0；=voteCounts[b.id]||0；=voteCounts[b.id]||0；=voteCounts[b.id]。身份标识]。身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。身份标识]。ID]||0；=voteCounts[b.id]||<div class="title">${song.title}</div>div class="title">${song.title}<
+投票计数
+sortedSongs=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；==投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].id]||0；=voteCoun=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；==投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；=voteCounts[b.身份标识]。ID]||0；=||0；=投票计数[b.身份标识]||0；==投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；=voteCounts[b.id]||0；=voteCounts[b.身份标识]。ID]||0；=voteCoun[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标.id]||0；=voteCounts[b.身份标识]。ID]||0；=||0；=投票计数[b.身份标识]||0；==投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；=voteCounts[b.id]||0；=voteCounts[b.身份标识]。ID]||0；=voteCoun[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]|'身份标识com/50'覆盖$投票计数class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">"]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]|'身份标识com/50'覆盖$投票计数class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">>div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class=；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||<div class="title">${song.title}</div>div class="title">${song.tiinfo">div class="info">div class="info">div class="info">div class="info">div class="info">div class="info">div class=；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||<div class="title">${song.title}<TLE}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${sΩ.title}</div>div类="ti识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||<div class="title">${song.title}</div>div class="title">${sodiv>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${s Ong.title}</div>div类="ti识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||<div class="title">${song.title}</div>div class="title">ng.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${s ong.title}<TLE">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song。标题济核算[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.id]||{song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</dIV>div class="title">${s ong.title}<TLE">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}<0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song。标题济核算[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；div>dIV class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.title}</div>div class="title">${song.标题济核算[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；
+.ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；=voteCounts[b.id]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；=voteCounts[b.id]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]。ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；=voteCounts[b.ID]||0；
+        });
+
+||0；=voteCounts[b.id]||0；=voteCounts[b.身份标识]b。身份标识]||0；=投票计数[b.身份标识]]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.ID]||0；0；=voteCounts[b.ID]||0；=voteCounts[b.身份标识]b.身份标识]||0；=投票计数[b.身份标识]]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识].ID]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.身份标识]||0；=投票计数[b.id]||0；
+listDiv.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=。innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS.innerH=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS.TML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS。innerHTML=sor=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS。innerHTML=泰迪歌曲。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map(歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS.innerHTML=sor泰迪歌曲。地图(song，inde((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map(歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedS。innerHTML=X)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=昂斯。map((song，iinnerHTML=sortedSongs.map)map()Ng，iND(song，indeX)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=昂斯.Map((song，iinnerHTML=sortedSongs.Map)map()Ng，iNDexex)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.map(歌曲，索引)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=NDEX)=>{.innerHTML=sor泰迪歌曲。地图((歌曲，索引)=>{。客栈erHTML=已排序歌曲。地=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。map((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.Map(song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=NDEX)=>{.innerHTML=sor泰迪歌曲。地图((歌曲，索引)=>{。客栈erHTML=图((歌曲，索引)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs.Map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((歌曲，索引)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{.innerHTML=sortedSongs。map((song，index)=>{.innerHTML=sortedSongs。地图((歌曲，索引)=>{
+常数计数pot数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数，数ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲ID]||0；=poteCounts[歌曲ID]||0；=poteCounts[歌曲ID].ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲]。ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=voteCounts[歌曲.ID]||0；=poteCounts[歌曲。ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲。ID]||0；=votecounts[歌曲ID]||0；=[歌曲ID]||0；=poteCounts[song.ID]||0；=poteCounts[歌曲。ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲.ID]||0；[歌曲.ID]||0；=poteCounts[歌曲]。ID]||0；=poteCounts[歌曲。ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲ID]||0；=voteCounts[歌曲。ID]||0；=voteCounts[歌曲.ID]||0；
+<
+！doctype''''''''''''''''''''''''''''''''
+<班级
+</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${r ank}<//div>P_song_id="字体粗细：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${排名}<div风格="字体粗细：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<//div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<#888'}；">${rank}</div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}<#888'}；">${rank}<//div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</
+/div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${r ank}</div>div风格=<=3？'#e60012'：'#888'}；">${排名}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div>div>div风格="字体粗细：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${排名}</div>div style="font-weight：粗体；宽度：20px；文本对齐：居中；颜色：${rank<=3？'#e60012'：'#888'}；">${rank}</div>>${排名}<
+div班级
+divdiv>div班级="标题">${歌曲.titLeeeeee}</
+风格="}</div>ddiv class="班级"元"歌曲。生产者
+班级
+<"显示：柔度；柔度方向：列；对齐项：柔度-端点；间隙：4div style="PX；
+按钮班级/按钮>按钮班级="投票-btn"onClick="投票(${歌曲。身份标识})">投票="投票-btn"onClick="投票(${歌曲。身份标识})">投票</按钮>/按钮>按钮班级="投票-btn"onClick="投票(${歌曲。身份标识})">投票</
+<
+<
+<
+init()；()；()；()；()；()；()；()；
+<
+}).参加(")；).join(")；).参加(")；).join(")；
+
+异步函数投票
+如果(！currentUser)返回警报('请先登录！')；(！currentUser)返回警报('请先登录！')；(！currentUser)返回警报('请先登录！')；(！currentUser)返回警报('请先登录！')；
+Const{数据，错误}=等待数据库。RPC('cast_vote'，{P_song_id:SongID})；{数据，错误}=等待数据库。RPC('cast_vote'，{P_song_id:SongID})；{数据，错误}=等待数据库。RPC('cast_vote'，{P_song_id:SongID})；{数据，错误}=等待supabase.RPC('cast_vote'，{P_song_id:SongID})；
+SongID
+返回告警
+        
+警惕的
+等待加载数据
+    
+
+如果
+<
+<
+<
