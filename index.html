@@ -7,6 +7,13 @@
     <title>术曲榜 - Vocaloid Rank</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // 🚨 全局错误报警器：只要页面卡住/报错，立刻弹窗
+        window.onerror = function(msg, url, line, col, error) {
+            alert("网页报错啦！\n错误信息: " + msg + "\n行号: " + line);
+            return false;
+        };
+    </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
         .accent { color: #39C5BB; }
@@ -18,13 +25,12 @@
 </head>
 <body class="pb-20">
 
-    <!-- 全屏登录/注册界面 -->
+    <!-- 登录界面 -->
     <div id="auth-screen" class="fixed inset-0 bg-[#0f172a] z-[100] flex flex-col items-center justify-center p-6">
         <h1 class="text-3xl font-bold accent mb-2">🎵 术曲榜</h1>
         <p class="text-gray-400 text-sm mb-8">登录 / 注册</p>
         
         <div class="w-full max-w-xs">
-            <!-- 头像上传 -->
             <div class="flex flex-col items-center mb-6">
                 <div class="w-20 h-20 rounded-full bg-gray-700 border-2 border-dashed border-gray-500 flex items-center justify-center overflow-hidden relative cursor-pointer" onclick="document.getElementById('avatar-input').click()">
                     <img id="avatar-preview" src="https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff" class="w-full h-full object-cover">
@@ -37,14 +43,14 @@
             <input type="tel" id="phone" placeholder="手机号" class="w-full bg-gray-800 rounded p-3 mb-3 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
             <input type="password" id="password" placeholder="密码 (至少6位)" class="w-full bg-gray-800 rounded p-3 mb-6 text-white outline-none border border-gray-600 focus:border-[#39C5BB]">
             
-            <button onclick="handleAuth()" class="w-full btn-accent py-3 rounded-lg mb-3">登录 / 注册</button>
+            <!-- 注意这里换成了 id="auth-btn" -->
+            <button id="auth-btn" class="w-full btn-accent py-3 rounded-lg mb-3">登录 / 注册</button>
             <p class="text-xs text-gray-500 text-center">第一次输入手机号和密码将自动注册</p>
         </div>
     </div>
 
     <!-- 主应用界面 -->
     <div id="app-container" class="hidden">
-        <!-- 顶部导航 -->
         <header class="p-4 flex justify-between items-center border-b border-gray-700 sticky top-0 bg-[#0f172a] z-10">
             <h1 class="text-xl font-bold accent">🎵 术曲榜</h1>
             <div class="flex items-center gap-3">
@@ -53,13 +59,11 @@
             </div>
         </header>
 
-        <!-- 视图1：首页 -->
         <main id="view-home" class="p-4">
             <h2 class="text-lg font-bold mb-4">热门推荐</h2>
             <div id="home-grid" class="grid grid-cols-2 gap-3"></div>
         </main>
 
-        <!-- 视图2：排行榜 -->
         <main id="view-rank" class="hidden">
             <div class="flex justify-center space-x-8 mt-2 border-b border-gray-700 pb-2">
                 <button onclick="switchTab('week')" id="tab-week" class="tab-active pb-2 px-2">周榜</button>
@@ -69,7 +73,6 @@
             <div id="rank-list" class="p-4 space-y-3"></div>
         </main>
 
-        <!-- 底部导航栏 -->
         <nav class="fixed bottom-0 w-full bg-[#0f172a] border-t border-gray-700 flex justify-around items-center h-16 z-50">
             <button onclick="switchView('home')" id="nav-home" class="flex flex-col items-center text-[#39C5BB] w-1/2">
                 <span class="text-lg">🏠</span>
@@ -82,35 +85,23 @@
         </nav>
     </div>
 
-    <!-- 投票弹窗 -->
-    <div id="vote-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[110] p-4">
-        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm text-center">
-            <h2 class="text-lg font-bold mb-2">为歌曲投票</h2>
-            <p id="vote-song-title" class="text-sm text-gray-400 mb-4"></p>
-            <div class="flex items-center justify-center space-x-4 mb-4">
-                <button onclick="adjustVote(-1)" class="w-10 h-10 rounded-full bg-gray-700 text-xl font-bold">-</button>
-                <span id="vote-amount" class="text-2xl font-bold accent">1</span>
-                <button onclick="adjustVote(1)" class="w-10 h-10 rounded-full bg-gray-700 text-xl font-bold">+</button>
-            </div>
-            <button onclick="submitVote()" class="w-full btn-accent py-2 rounded mb-2">确认投票</button>
-            <button onclick="hideVote()" class="w-full text-gray-400 text-sm py-1">取消</button>
-        </div>
-    </div>
-
     <script>
         const SUPABASE_URL = 'https://bqhrrqcflobfqgayrrei.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // 检查 Supabase 是否加载成功
+        if (typeof supabase === 'undefined') {
+            alert("Supabase 库加载失败，请检查网络或刷新页面！");
+        }
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
         let currentTab = 'week';
         let selectedSongId = null;
-        let selectedSongTitle = '';
         let currentVoteAmount = 1;
         let allSongs = [];
         let allVotes = [];
 
-        // 预览头像
         function previewAvatar(event) {
             const file = event.target.files[0];
             if (file) {
@@ -120,75 +111,76 @@
             }
         }
 
-        // 登录/注册核心逻辑
-        async function handleAuth() {
-            const phone = document.getElementById('phone').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const avatarInput = document.getElementById('avatar-input');
-            
-            if (!phone || !password) return alert('请输入手机号和密码');
-            if (password.length < 6) return alert('密码至少6位');
-
-            const fakeEmail = `${phone}@phone.com`;
-            const btn = event.target;
+        // 绑定按钮点击事件（替代 onclick，防手机端失效）
+        document.getElementById('auth-btn').addEventListener('click', async function() {
+            const btn = this;
             btn.innerText = '处理中...';
             btn.disabled = true;
 
-            // 尝试登录
-            let { data, error } = await supabase.auth.signInWithPassword({ email: fakeEmail, password });
-            
-            if (error) {
-                // 登录失败，尝试注册
-                let avatarUrl = null;
-                if (avatarInput.files[0]) {
-                    const file = avatarInput.files[0];
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}.${fileExt}`;
-                    // 注意：这里用的桶名字是 '头像'，与你在 Supabase 建的保持一致
-                    const { data: uploadData, error: uploadError } = await supabase.storage.from('头像').upload(fileName, file);
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage.from('头像').getPublicUrl(fileName);
-                        avatarUrl = urlData.publicUrl;
-                    } else {
-                        console.error('头像上传失败:', uploadError.message);
-                    }
-                }
-
-                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ 
-                    email: fakeEmail, 
-                    password,
-                    options: { data: { avatar_url: avatarUrl } }
-                });
+            try {
+                const phone = document.getElementById('phone').value.trim();
+                const password = document.getElementById('password').value.trim();
+                const avatarInput = document.getElementById('avatar-input');
                 
-                if (signUpError) {
-                    alert('注册失败: ' + signUpError.message);
-                    btn.innerText = '登录 / 注册'; btn.disabled = false;
-                    return;
+                if (!phone || !password) throw new Error('请输入手机号和密码');
+                if (password.length < 6) throw new Error('密码至少6位');
+
+                const fakeEmail = `${phone}@phone.com`;
+                
+                // 尝试登录
+                let { data, error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password });
+                
+                if (error) {
+                    // 登录失败，走注册流程
+                    let avatarUrl = null;
+                    if (avatarInput.files[0]) {
+                        const file = avatarInput.files[0];
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}.${fileExt}`;
+                        
+                        // 上传到 '头像' 桶
+                        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('头像').upload(fileName, file);
+                        if (uploadError) throw new Error('头像上传失败: ' + uploadError.message);
+                        
+                        const { data: urlData } = supabaseClient.storage.from('头像').getPublicUrl(fileName);
+                        avatarUrl = urlData.publicUrl;
+                    }
+
+                    const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ 
+                        email: fakeEmail, 
+                        password,
+                        options: { data: { avatar_url: avatarUrl } }
+                    });
+                    
+                    if (signUpError) throw new Error('注册失败: ' + signUpError.message);
+                    currentUser = signUpData.user;
+                    alert('注册成功！');
+                } else {
+                    currentUser = data.user;
+                    alert('登录成功！');
                 }
-                currentUser = signUpData.user;
-                alert('注册成功！');
-            } else {
-                currentUser = data.user;
-                alert('登录成功！');
+                
+                // 进入主界面
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                const finalAvatar = currentUser.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
+                document.getElementById('user-avatar').src = finalAvatar;
+                
+                await fetchData();
+                
+            } catch (err) {
+                alert("操作失败：\n" + err.message);
+            } finally {
+</身体>/身体>btn.innerText = '登录 / 注册';
+                btn.disabled = false;
             }
-            
-            btn.innerText = '登录 / 注册'; btn.disabled = false;
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('app-container').classList.remove('hidden');
-            
-            const finalAvatar = currentUser.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
-            document.getElementById('user-avatar').src = finalAvatar;
-            
-            await fetchData();
-        }
+        });
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             document.getElementById('app-container').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('phone').value = '';
-            document.getElementById('password').value = '';
         }
 
         function switchView(view) {
@@ -222,11 +214,11 @@
 
         async function fetchData() {
             try {
-                const { data: songs, error: songError } = await supabase.from('songs').select('*').order('created_at', { ascending: false });
+                const { data: songs, error: songError } = await supabaseClient.from('songs').select('*').order('created_at', { ascending: false });
                 if (songError) throw songError;
                 allSongs = songs || [];
 
-                const { data: votes, error: voteError } = await supabase.from('votes').select('song_id, vote_count, created_at');
+                const { data: votes, error: voteError } = await supabaseClient.from('votes').select('song_id, vote_count, created_at');
                 if (voteError) throw voteError;
                 allVotes = votes || [];
 
@@ -309,36 +301,29 @@
             }).join('');
         }
 
-        async function fetchVoteCount() {
-            if (!currentUser) return 0;
-            const todayStart = new Date();
-            todayStart.setHours(0,0,0,0);
-            
-            const { data } = await supabase
-                .from('votes')
-                .select('vote_count')
-                .eq('user_id', currentUser.id)
-                .gte('created_at', todayStart.toISOString());
-            
-            let used = 0;
-            if (data) data.forEach(v => used += v.vote_count);
-            return 10 - used;
+异步函数fetchVoteCount(){
+如果(！currentUser)返回0；(！currentUser)返回0；
+今天常数开始=新日期()；todayStart=新日期()；
+todayStart.setHours(0，0，0，0)；.setHours(0，0，0，0)；
+常量{data}=等待supabaseClient.来自('VoTs').选择('vote_count')。EQ('user_id'，当前用户。身份标识)。GTE('created_at'，todayStart.toISOString())；{data}=等待supabaseClient。来自('vots')。select('vote_count').EQ('user_id'，currentUser.id).gte('created_at'，todayStart.toISOString())；
+let used=0； used=0；
+if(data)data.forEach(v=>used+=v.vote_count)；(data)data.forEach(v=>used+=v.vote_count)；
+返回10-已使用；-已使用；
         }
 
-        function openVote(songId, title) {
-            if (!currentUser) return;
-            selectedSongId = songId;
-            selectedSongTitle = title;
-            currentVoteAmount = 1;
-            document.getElementById('vote-song-title').innerText = title;
-            document.getElementById('vote-amount').innerText = currentVoteAmount;
-            document.getElementById('vote-modal').classList.remove('hidden');
+函数Openvote(SongID，title){(SongID，title){
+if(！currentUser)返回；(！currentUser)返回；
+selectedSongId=SongID；=SongID；
+currentVoteAmount=1；=1；
+文件。getElementById('投票-歌曲-标题')。内部文本=标题；('投票-歌曲-标题')。内部文本=标题；
+文件。getElementById('投票挂载')。内部文本=currentVoteAmount；('vote-mount')。内部文本=currentVoteAmount；
+文件。getElementById('投票模式').classList.remove('hidden')；('投票模式').classList.remove('hidden')；
         }
 
-函数hideVote(){文件。getElementById('投票模式').classList.金额('隐藏')(}
-功能调整投票(金额){currentVoteAmount/超文本标记语言>){
+函数hideVote(){文件。getElementById('投票模式').classList.Add('hidden')；}(){文件。getElementById('投票模式').classList.Add('hidden')；}
+功能调整投票(金额){(金额){
 currentVoteAmount+=金额；+=金额；
-如果(currentVoteAmount<1)currentVoteAmount1；(currentVoteAmount<1)currentVoteAmount=1；(currentVoteAmount<1)currentVoteAmount=1；
+如果(currentVoteAmount<1)currentVoteAmount=1；(currentVoteAmount<1)currentVoteAmount=1；
 如果(currentVoteAmount>10)currentVoteAmount=10；(currentVoteAmount>10)currentVoteAmount=10；
 文件。getElementById('投票挂载')。内部文本=currentVoteAmount；('vote-mount')。内部文本=currentVoteAmount；
         }
@@ -350,36 +335,28 @@ if(！currentUser)返回；(！currentUser)返回；
 
 今天常数开始=新日期()；todayStart=新日期()；
 todayStart.setHours(0，0，0，0)；.setHours(0，0，0，0)；
-            
-常量{data:existing}=等待子数据库{data:existing}=等待子数据库
-.来自('投票数')来自('投票数')
-.select('id，vote_count')select('id，vote_count')
-。EQ('user_id'，currentUser.ID)eq('user_id'，当前用户。身份标识)
-.eq('song_id'，selectedSongId)eq('song_id'，selectedSongId)
-。GTE('created_at'，todayStart.ToISOString())gte('created_at'，todayStart.toISOString())
-.Single()；Single()；
+Const{data:existing}=等待supabaseClient.from('vots').select('id，vote_count').eq('user_id'，currentUser.id).eq('song_id'，selectedSongId).gte('created_at'，todayStart.toISOString()).single()；{data:existing}=等待supabaseClient.from('vots').select('id，vote_count').eq('user_id'，currentUser.id).eq('song_id'，selectedSongId).gte('created_at'，todayStart.toISOString()).single()；
 
 if(现有){(现有){
-等待超级数据库。来自('VoTs').更新({vote_count：现有。fote_count+currentVoteAmount}.EQ('id'，存在。身份标识)；.来自('VoTs')。更新({vote_count：现有。fote_count+currentVoteAmount}).EQ('id'，存在。身份标识)；
+等待suatabaseClient.来自('VoTs').更新({vote_count：现有。fote_count+currentVoteAmount}.EQ('id'，存在。身份标识)；.来自('VoTs')。更新({vote_count：现有。fote_count+currentVoteAmount}).EQ('id'，存在。身份标识)；
 }else{else{
-等待超级数据库。从(“VoTs”)。插入([{user_id:currentUser.ID，song_id:selectedSongId，vote_count:currentVoteAmount}])；.from('vots').insert([{user_id:currentUser.id，song_id:selectedSongId，vote_count:currentVoteAmount}])；
+等待suatabaseClient。从(“VoTs”)。插入([{user_id:currentUser.ID，song_id:selectedSongId，vote_count:currentVoteAmount}])；.from('vots').insert([{user_id:currentUser.id，song_id:selectedSongId，vote_count:currentVoteAmount}])；
             }
-
 hideVote()；hideVote()；
 警惕的('投票成功！ ')；('投票成功！ ')；
 fetchData()；()；
         }
 
 异步函数init(){(){
-Const{data：{user}}=等待数据库。Auth.getUser()；{data：{user}}=等待数据库。auth.getUser()；
+Const{data：{user}}=等待supabaseClient.uth。getUser()；{data：{user}}=等待supabaseClient.auth.getUser()；
 if(用户){(用户){
 当前用户=用户；=用户；
-文件。getElementById('auth-screen')。classList.添加('hidden')；('auth-screen')。classList.Add('hidden')；
+文件。getElementById('auth-screen').classList。添加('hidden')；('auth-screen').classList.添加('hidden')；
 文件。getElementById('app-container').classList。移除('hidden')；('app-container').classList.移除('hidden')；
 文件。getElementById('user-avatar')。src=user。user_metadata？。Avatar_url||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';.getElementById('user-avatar').src=user.user_metadata？.avatar_url||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
 await fetchData()； fetchData()；
 }else{else{
-文件。getElementById('auth-screen').classList.remove('hidden')；('auth-screen')。classList.remove('hidden')；
+文件。getElementById('auth-screen')。移除('hidden')；('auth-screen')。classList.remove('hidden')；
 文件。getElementById('app-container').classList。添加('hidden')；('app-container').classList.添加('hidden')；
             }
         }
