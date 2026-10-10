@@ -13,13 +13,12 @@
         .btn-accent { background-color: #39C5BB; color: #0f172a; font-weight: bold; }
         .btn-accent:hover { background-color: #2da89f; }
         .tab-active { border-bottom: 3px solid #39C5BB; color: #39C5BB; }
-        /* 隐藏滚动条让界面更像APP */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="pb-20">
 
-    <!-- ================= 全屏登录/注册界面 ================= -->
+    <!-- 全屏登录/注册界面 -->
     <div id="auth-screen" class="fixed inset-0 bg-[#0f172a] z-[100] flex flex-col items-center justify-center p-6">
         <h1 class="text-3xl font-bold accent mb-2">🎵 术曲榜</h1>
         <p class="text-gray-400 text-sm mb-8">登录 / 注册</p>
@@ -43,23 +42,21 @@
         </div>
     </div>
 
-    <!-- ================= 主应用界面（登录后显示） ================= -->
+    <!-- 主应用界面 -->
     <div id="app-container" class="hidden">
         <!-- 顶部导航 -->
         <header class="p-4 flex justify-between items-center border-b border-gray-700 sticky top-0 bg-[#0f172a] z-10">
             <h1 class="text-xl font-bold accent">🎵 术曲榜</h1>
             <div class="flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full bg-gray-700">
+                <img id="user-avatar" src="" class="w-8 h-8 rounded-full bg-gray-700 object-cover">
                 <button onclick="logout()" class="text-xs text-red-400 border border-red-400 px-2 py-1 rounded">退出</button>
             </div>
         </header>
 
-        <!-- 视图1：首页 (视频卡片风格) -->
+        <!-- 视图1：首页 -->
         <main id="view-home" class="p-4">
             <h2 class="text-lg font-bold mb-4">热门推荐</h2>
-            <div id="home-grid" class="grid grid-cols-2 gap-3">
-                <!-- 动态渲染卡片 -->
-            </div>
+            <div id="home-grid" class="grid grid-cols-2 gap-3"></div>
         </main>
 
         <!-- 视图2：排行榜 -->
@@ -69,9 +66,7 @@
                 <button onclick="switchTab('month')" id="tab-month" class="pb-2 px-2 text-gray-400">月榜</button>
                 <button onclick="switchTab('all')" id="tab-all" class="pb-2 px-2 text-gray-400">总榜</button>
             </div>
-            <div id="rank-list" class="p-4 space-y-3">
-                <!-- 动态渲染榜单 -->
-            </div>
+            <div id="rank-list" class="p-4 space-y-3"></div>
         </main>
 
         <!-- 底部导航栏 -->
@@ -103,11 +98,9 @@
     </div>
 
     <script>
-        // ================= 配置区（已填入你的真实数据） =================
         const SUPABASE_URL = 'https://bqhrrqcflobfqgayrrei.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        // ======================================================================
 
         let currentUser = null;
         let currentTab = 'week';
@@ -117,7 +110,7 @@
         let allSongs = [];
         let allVotes = [];
 
-        // --- 登录/注册 ---
+        // 预览头像
         function previewAvatar(event) {
             const file = event.target.files[0];
             if (file) {
@@ -127,6 +120,7 @@
             }
         }
 
+        // 登录/注册核心逻辑
         async function handleAuth() {
             const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value.trim();
@@ -140,12 +134,32 @@
             btn.innerText = '处理中...';
             btn.disabled = true;
 
-            // 尝试登录，失败则注册
+            // 尝试登录
             let { data, error } = await supabase.auth.signInWithPassword({ email: fakeEmail, password });
             
             if (error) {
-                // 注册
-                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email: fakeEmail, password });
+                // 登录失败，尝试注册
+                let avatarUrl = null;
+                if (avatarInput.files[0]) {
+                    const file = avatarInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}.${fileExt}`;
+                    // 注意：这里用的桶名字是 '头像'，与你在 Supabase 建的保持一致
+                    const { data: uploadData, error: uploadError } = await supabase.storage.from('头像').upload(fileName, file);
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage.from('头像').getPublicUrl(fileName);
+                        avatarUrl = urlData.publicUrl;
+                    } else {
+                        console.error('头像上传失败:', uploadError.message);
+                    }
+                }
+
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ 
+                    email: fakeEmail, 
+                    password,
+                    options: { data: { avatar_url: avatarUrl } }
+                });
+                
                 if (signUpError) {
                     alert('注册失败: ' + signUpError.message);
                     btn.innerText = '登录 / 注册'; btn.disabled = false;
@@ -153,16 +167,6 @@
                 }
                 currentUser = signUpData.user;
                 alert('注册成功！');
-                
-                // 如果有上传头像，存入用户信息
-                if (avatarInput.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        await supabase.auth.updateUser({ data: { avatar_url: e.target.result } });
-                        document.getElementById('user-avatar').src = e.target.result;
-                    };
-                    reader.readAsDataURL(avatarInput.files[0]);
-                }
             } else {
                 currentUser = data.user;
                 alert('登录成功！');
@@ -171,7 +175,9 @@
             btn.innerText = '登录 / 注册'; btn.disabled = false;
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
-            document.getElementById('user-avatar').src = currentUser.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
+            
+            const finalAvatar = currentUser.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
+            document.getElementById('user-avatar').src = finalAvatar;
             
             await fetchData();
         }
@@ -183,10 +189,8 @@
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('phone').value = '';
             document.getElementById('password').value = '';
-            document.getElementById('avatar-preview').src = 'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
         }
 
-        // --- 切换底部导航视图 ---
         function switchView(view) {
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-rank').classList.add('hidden');
@@ -204,7 +208,6 @@
             }
         }
 
-        // --- 榜单切换 ---
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('button[id^="tab-"]').forEach(btn => {
@@ -217,15 +220,12 @@
             renderRank();
         }
 
-        // --- 获取所有数据 ---
         async function fetchData() {
             try {
-                // 1. 获取歌曲
                 const { data: songs, error: songError } = await supabase.from('songs').select('*').order('created_at', { ascending: false });
                 if (songError) throw songError;
                 allSongs = songs || [];
 
-                // 2. 获取投票
                 const { data: votes, error: voteError } = await supabase.from('votes').select('song_id, vote_count, created_at');
                 if (voteError) throw voteError;
                 allVotes = votes || [];
@@ -233,11 +233,10 @@
                 renderHome();
                 renderRank();
             } catch (err) {
-                alert('数据加载失败，请检查 Supabase 是否建表。\n错误: ' + err.message);
+                alert('数据加载失败，请检查 Supabase 数据库中是否有 songs 和 votes 表。\n错误: ' + err.message);
             }
         }
 
-        // --- 渲染首页（卡片） ---
         function renderHome() {
             const grid = document.getElementById('home-grid');
             if (allSongs.length === 0) {
@@ -261,11 +260,8 @@
             `).join('');
         }
 
-        // --- 渲染排行榜 ---
         function renderRank() {
             const listEl = document.getElementById('rank-list');
-            
-            // 计算时间范围
             let timeFilter = null;
             const now = new Date();
             if (currentTab === 'week') {
@@ -279,7 +275,6 @@
                 timeFilter = firstDay.getTime();
             }
 
-            // 聚合票数
             const voteMap = {};
             allVotes.forEach(v => {
                 if (!timeFilter || new Date(v.created_at).getTime() >= timeFilter) {
@@ -287,7 +282,6 @@
                 }
             });
 
-            // 排序
             const sortedSongs = [...allSongs].sort((a, b) => (voteMap[b.id] || 0) - (voteMap[a.id] || 0));
 
             if (sortedSongs.length === 0) {
@@ -315,91 +309,81 @@
             }).join('');
         }
 
-        // --- 投票逻辑 ---
         async function fetchVoteCount() {
             if (!currentUser) return 0;
-            const today = new Date().toISOString().split('T')[0];
-            // 注意：这里直接在前端过滤今日数据（简化版）
             const todayStart = new Date();
             todayStart.setHours(0,0,0,0);
             
-            Const { 数据 }=等候 子基
-                .从……起('投票')
-                .选择('vote_count')
-                .情商('User_ID', currentUser.身份标识)
-                .GTE('created_at', todayStart.toISOString());
+            const { data } = await supabase
+                .from('votes')
+                .select('vote_count')
+                .eq('user_id', currentUser.id)
+                .gte('created_at', todayStart.toISOString());
             
-            让 习惯的=0;
-            如果 (数据) 数据.foreach(v=>习惯的+=v.投票计数(_C));
-            返回 10 - 习惯的;
+            let used = 0;
+            if (data) data.forEach(v => used += v.vote_count);
+            return 10 - used;
         }
 
-        功能 Openvote(SongID, 标题) {
-            如果 (!currentUser) 返回;
-            selectedSongId=SongID;
-            selectedSongTitle=标题;
-            currentVoteAmount=1;
-文件.getElementById；常数todayStart新的Date(内部文本=标题；文件.getElementById('投票歌名').内部文本=标题；
-文件.getElementById('投票金额').内部文本=currentVoteAmount；文件.getElementById('投票金额').内部文本=currentVoteAmount；
-文件.getElementById('表决-模态').classList。移除('隐藏')；文件.getElementById('表决-模态').classList。移除('隐藏')；
-}}
+        function openVote(songId, title) {
+            if (!currentUser) return;
+            selectedSongId = songId;
+            selectedSongTitle = title;
+            currentVoteAmount = 1;
+            document.getElementById('vote-song-title').innerText = title;
+            document.getElementById('vote-amount').innerText = currentVoteAmount;
+            document.getElementById('vote-modal').classList.remove('hidden');
+        }
 
-功能hideVote(){文件.getElementById('表决-模态').classList。添加('隐藏')；}功能hideVote(){文件.getElementById('表决-模态').classList。添加('隐藏')；}
-功能adjustVote(数量){功能adjustVote(数量){
-currentVoteAmount+=数量；currentVoteAmount+=数量；
-如果(currentVoteAmount<1)currentVoteAmount=1；如果(currentVoteAmount<1)currentVoteAmount=1；
-如果(currentVoteAmount>10)currentVoteAmount=10；如果(currentVoteAmount>10)currentVoteAmount=10；
-文件.getElementById('投票金额').内部文本=currentVoteAmount；文件.getElementById('投票金额').内部文本=currentVoteAmount；
-}}
+函数hideVote(){文件。getElementById('投票模式').classList.金额('隐藏')(}
+功能调整投票(金额){currentVoteAmount/超文本标记语言>){
+currentVoteAmount+=金额；+=金额；
+如果(currentVoteAmount<1)currentVoteAmount1；(currentVoteAmount<1)currentVoteAmount=1；(currentVoteAmount<1)currentVoteAmount=1；
+如果(currentVoteAmount>10)currentVoteAmount=10；(currentVoteAmount>10)currentVoteAmount=10；
+文件。getElementById('投票挂载')。内部文本=currentVoteAmount；('vote-mount')。内部文本=currentVoteAmount；
+        }
 
-超文本标记语言
-异步函数submitVote(){异步函数submitVote(){
-/超文本标记语言>超文本标记语言>超文本标记语言>超文本标记语言>
-！返回；如果
-        
-超文本标记语言
+异步函数submitVote(){(){
+if(！currentUser)返回；(！currentUser)返回；
+剩余常数=等待fetchVoteCount()；=等待fetchVoteCount()；
+如果(当前VooteAmount>剩余)返回警报(‘你今天的票数不够啦！剩余：${剩余}票‘)；(当前VooteAmount>剩余)返回警报(‘你今天的票数不够啦！剩余：${剩余}票‘)；
 
-            // 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票// 检查今日是否已给同一首歌投过票
-今天常数开始=新日期()；常数todayStart=新的日期()；todayStart=新日期()；常数todayStart=新的Date()；=新日期()；常数todayStart=新的日期()；todayStart=新日期()；常数todayStart=新的Date()；新日期()；常数todayStart=新的Date()；)；=新日期()；常数todayStart=新的日期()；todayStart=新日期()；常数todayStart=新的Date()；新日期()；常数todayStart=新的Date()；
-今天开始。setHours(0，0，0，0)；todayStart。setHours(0，0，0，0)；(0，0，0)；todayStart。setHours(0，0，0)；
+今天常数开始=新日期()；todayStart=新日期()；
+todayStart.setHours(0，0，0，0)；.setHours(0，0，0，0)；
             
-常量{数据:现有的}=等待子数据库常量{数据:现有的}=等待子数据库{数据:现有的}=等待子数据库常量{数据:现有的}=等待子数据库
-.来自('投票数')来自(“投票数”)来自('投票数')来自(“投票数”)
-.选择('id，vote_count')
-.情商('User_ID'，当前用户。身份标识)情商('User_ID'，当前用户。身份标识)情商('User_ID'，当前用户。身份标识)情商('User_ID'，当前用户。身份标识)
-.情商('song_ID'，selectedSongId)
-.GTE('created_at'，今天开始。ToISOString())GTE('created_at'，今天开始。ToISOString())GTE('created_at'，今天开始。ToISOString())GTE('created_at'，今天开始。ToISOString())
-.单一的()；单个()；单一的()；单个()；
+常量{data:existing}=等待子数据库{data:existing}=等待子数据库
+.来自('投票数')来自('投票数')
+.select('id，vote_count')select('id，vote_count')
+。EQ('user_id'，currentUser.ID)eq('user_id'，当前用户。身份标识)
+.eq('song_id'，selectedSongId)eq('song_id'，selectedSongId)
+。GTE('created_at'，todayStart.ToISOString())gte('created_at'，todayStart.toISOString())
+.Single()；Single()；
 
-如果(现有){如果(现有){(现有){如果(现有){
-等待超基座.从……起('投票').从……起('投票')
-。更新({投票计数(_C)：现有的.投票计数(_C)+currentVoteAmount})更新({投票计数(_C)：现有的.FOTE_count+currentVoteAmount})({投票计数(_C)：现有的.投票计数(_C)+currentVoteAmount})更新({投票计数(_C)：现有的.fote_count+currentVoteAmount})
-.情商('ID'，已存在。身份标识)；EQ('ID'，已存在。身份标识)；情商('ID'，已存在。身份标识)；EQ('ID'，已存在。身份标识)；
-}其他{}其他{其他{}其他{
-等待超基座.从……起('投票').从……起('投票')
-。插入([{user_id：当前用户ID，song_id:selectedSongId，投票计数：currentVoteAmount}])；插入([{使用者识别码(_I)：当前用户。ID，song_id:selectedSongId，表决计数：currentVoteAmount}])；([{user_id：当前用户ID，song_id:selectedSongId，投票计数：currentVoteAmount}])；插入([{使用者识别码(_I)：当前用户。ID，song_id:selectedSongId，表决计数：currentVoteAmount}])；
+if(现有){(现有){
+等待超级数据库。来自('VoTs').更新({vote_count：现有。fote_count+currentVoteAmount}.EQ('id'，存在。身份标识)；.来自('VoTs')。更新({vote_count：现有。fote_count+currentVoteAmount}).EQ('id'，存在。身份标识)；
+}else{else{
+等待超级数据库。从(“VoTs”)。插入([{user_id:currentUser.ID，song_id:selectedSongId，vote_count:currentVoteAmount}])；.from('vots').insert([{user_id:currentUser.id，song_id:selectedSongId，vote_count:currentVoteAmount}])；
             }
 
-hideVote()；hideVote()；()；hideVote()；
-警惕的('投票成功！ ')；警报('投票成功！ ')；('投票成功！ ')；警报('投票成功！ ')；
-fetchData()；//重新加载数据fetchData()；//重新加载数据()；//重新加载数据fetchData()；//重新加载数据
+hideVote()；hideVote()；
+警惕的('投票成功！ ')；('投票成功！ ')；
+fetchData()；()；
         }
 
-//---初始化--// --- 初始化 ---
-异步函数init(){异步函数init(){(){异步函数init(){
-常数{data：{用户}}=等待supbase.UTH.getUser()；常数{data：{用户}}=等待supbase。授权.getUser()；{data：{用户}}=等待supbase.UTH.getUser()；常数{data：{用户}}=等待supbase。授权.getUser()；
-如果(用户){如果(用户){(用户){如果(用户){
-当前用户=用户；当前用户=用户；=用户；当前用户=用户；
-文件。getElementById('授权屏幕').classList。添加(“隐藏”)；文档。getElementById('授权屏幕').classList。添加('隐藏')；('授权屏幕').classList。添加(“隐藏”)；文档。getElementById('授权屏幕').classList。添加('隐藏')；
-文件。getElementById('应用程序容器').classList。移除('隐藏')；文件.getElementById('应用程序容器').classList。移除('隐藏')；('应用程序容器').classList。移除('隐藏')；文件.getElementById('应用程序容器').classList。移除('隐藏')；
-文件。getElementById('用户头像').src=用户。user_metadata？。头像_URL||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';文件.getElementById('用户头像').src=用户。user_metadata？。头像URL||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';('用户头像').src=用户.User_metadata？.头像_URL||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';文件.getElementById('用户头像').src=用户。user_metadata？。头像URL||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
-等候fetchData()等待fetchData()；fetchData()等待fetchData()；
-}其他{}其他{其他{}其他{
-文件。getElementById('授权屏幕').classList。删除(“隐藏”)；文档。getElementById('授权屏幕').classList。移除('隐藏')；('授权屏幕').classList。删除(“隐藏”)；文档。getElementById('授权屏幕').classList。移除('隐藏')；
-文件。getElementById('应用程序容器').classList。添加('隐藏')；文档.getElementById('应用程序容器').classList。添加('隐藏')；('应用程序容器').classList。添加('隐藏')；文档.getElementById('应用程序容器').classList。添加('隐藏')；
-}
-}
-init()；初始化()；()；初始化()；
-</戏剧></戏剧></戏剧></戏剧>
-</身体>身体>/身体>身体>
-</超文本标记语言>超文本标记语言>/超文本标记语言>超文本标记语言>
+异步函数init(){(){
+Const{data：{user}}=等待数据库。Auth.getUser()；{data：{user}}=等待数据库。auth.getUser()；
+if(用户){(用户){
+当前用户=用户；=用户；
+文件。getElementById('auth-screen')。classList.添加('hidden')；('auth-screen')。classList.Add('hidden')；
+文件。getElementById('app-container').classList。移除('hidden')；('app-container').classList.移除('hidden')；
+文件。getElementById('user-avatar')。src=user。user_metadata？。Avatar_url||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';.getElementById('user-avatar').src=user.user_metadata？.avatar_url||'https://ui-avatars.com/api/?name=User&background=39C5BB&color=fff';
+await fetchData()； fetchData()；
+}else{else{
+文件。getElementById('auth-screen').classList.remove('hidden')；('auth-screen')。classList.remove('hidden')；
+文件。getElementById('app-container').classList。添加('hidden')；('app-container').classList.添加('hidden')；
+            }
+        }
+init()；()；
+</剧本>/剧本>
+</身体>/身体>
+</超文本标记语言>/超文本标记语言>
