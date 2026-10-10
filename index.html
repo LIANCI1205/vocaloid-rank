@@ -1,58 +1,57 @@
-<！doctype超文本标记语言>
-<超文本标记语言朗="zh-CN">
-<头>
-<元字符集="UTF-8">
-    <元 姓名="视口" 内容="宽度=设备宽度，初始比例=1.0">
-    <标题>术曲榜</标题>
-<剧本src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></脚本>
-<风格>
-身体{字体系列：system-ui、-apple-系统，无衬线；背景：#f9f9f9；边缘：0；填充：16px；颜色：#333；}
-.页眉{显示：弯曲；justify-content：间距；对齐项目：中心；底边距：20PX；}
-.页眉H1{字体大小：22px；边缘：0；颜色：#e60012；}
-.auth-btn{背景：#333；颜色：#FFF；边界：没有一个；填充：8px16px；边界半径：6px；字体大小：14px；}
-.auth-btn.已登录{背景：#e60012；}
-.选项卡{显示：弯曲；差距：8PX；底边距：20px；}
-.标签{弯曲：1；文本对齐：中心；填充：8PX；背景：#FFF；边界：1PX固体#ddd；边界半径：6px；字体大小：14px；}
-.标签.活跃的{背景：#e60012；颜色：#FFF；边框颜色：#e60012；}
-.歌单 { 显示: 弯曲; 挠曲方向: 柱; 差距: 12PX; }
-.歌曲卡片{背景：#FFF；填充：12px；边界半径：8px；箱形阴影：01PX3PX RGBA(0,0,0,0.05);显示：弯曲；对齐项目：中心；差距：12px；}
-.覆盖{宽度：50px；高度：50px；背景：#Eee；边界半径：6px；对象拟合：覆盖；}
-.信息 { 弯曲: 1; 显示: 弯曲; 挠曲方向: 柱; 差距: 4PX; }
-.题目{字体粗细：大胆；字体大小：15px；}
-.元{字体大小：12px；颜色：#888；}
-.投票-btn{背景：#e60012；颜色：#FFF；边界：没有一个；填充：6px12px；边界半径：6px；字体大小：13px；字体粗细：大胆的；}
-.投票-btn：禁用{背景：#CCC；}
-.计价票{字体大小：12px；颜色：#e60012；字体粗细：大胆的；文本对齐：正确的；}
-.模态的{显示：没有一个；位置：确定的；顶端：0；左：0；宽度：100%；高度：100%；背景：RGBA(0,0,0,0.5); justify-content：中心；对齐项目：中心；Z指数：1000；}
-.模式内容{背景：#FFF；填充：20px；边界半径：12px；宽度：80%；最大宽度：320px；}
-形态内容入口{宽度：100%；填充：10px；底距：10px；边界：1px固体#ddd；边界半径：6px；箱体尺寸：边框框；}
-.模态内容按钮{宽度：100%；填充：10PX；背景：#e60012；颜色：#FFF；边境：没有一个；边界半径：6PX；字体粗细：大胆的；底边距：8PX；}
-.开关连杆{字体大小：12px；颜色：#e60012；文本对齐：中心；显示：块；上边距：5px；}
-</风格>
-</头>
-<身体>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>术曲榜</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f9f9f9; margin: 0; padding: 16px; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { font-size: 22px; margin: 0; color: #e60012; }
+        .auth-btn { background: #333; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; }
+        .auth-btn.logged-in { background: #e60012; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab { flex: 1; text-align: center; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .tab.active { background: #e60012; color: #fff; border-color: #e60012; }
+        .song-list { display: flex; flex-direction: column; gap: 12px; }
+        .song-card { background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px; }
+        .cover { width: 50px; height: 50px; background: #eee; border-radius: 6px; object-fit: cover; }
+        .info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .title { font-weight: bold; font-size: 15px; }
+        .meta { font-size: 12px; color: #888; }
+        .vote-btn { background: #e60012; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+        .vote-btn:disabled { background: #ccc; }
+        .vote-count { font-size: 12px; color: #e60012; font-weight: bold; text-align: right; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 12px; width: 80%; max-width: 320px; }
+        .modal-content input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .modal-content button { width: 100%; padding: 10px; background: #e60012; color: #fff; border: none; border-radius: 6px; font-weight: bold; margin-bottom: 8px; }
+        .switch-link { font-size: 12px; color: #e60012; text-align: center; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
 
-<div班级="页眉">
-<H1>术曲榜</H1>
-<按钮身份标识="authBtn"班级="auth-btn">登录</按钮>
+<div class="header">
+    <h1>术曲榜</h1>
+    <button id="authBtn" class="auth-btn">登录</button>
 </div>
 
-<div班级="标签"身份标识="标签">
-<div班级="选项卡激活"数据类型="周">周榜</div>
-<div班级="选项卡"数量类型="月">榜单</div>
-<div班级="选项卡"数据类型="all">总榜</div>
+<div class="tabs" id="tabs">
+    <div class="tab active" data-type="week">周榜</div>
+    <div class="tab" data-type="month">月榜</div>
+    <div class="tab" data-type="all">总榜</div>
 </div>
 
-<div班级="歌曲列表"身份标识="歌曲列表">
-<div风格="文本对齐：中心；颜色：#888；上边距：20px；">加载中...</div>
+<div class="song-list" id="songList">
+    <div style="text-align: center; color: #888; margin-top: 20px;">加载中...</div>
 </div>
 
-<! -- 登录/注册弹窗 -->
-<div 班级="modal" 身份标识="authModal">
-    <div 班级="modal-content">
-        <h3 身份标识="modalTitle" 风格="上边距: 0; 文本对齐: 中心;">登录</h3>
-        <输入 type="email" 身份标识="email" 占位符="邮箱">
-        <input type="password" id="password" placeholder="密码">
+<div class="modal" id="authModal">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="margin-top: 0; text-align: center;">登录</h3>
+        <input type="tel" id="phone" placeholder="请输入手机号" maxlength="11">
+        <input type="password" id="password" placeholder="请输入密码">
         <button id="submitAuth">登录</button>
         <span class="switch-link" id="switchAuth">没有账号？注册</span>
         <span class="switch-link" id="closeModal" style="color: #888; margin-top: 10px;">关闭</span>
@@ -60,9 +59,168 @@
 </div>
 
 <script>
-    // 填入你的 Supabase 信息
     const SUPABASE_URL = 'https://bqhrrqcflobfqgayrrei.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let currentTab = 'week';
+    let isRegistering = false;
+    let allSongs = [];
+    let allVotes = [];
+
+    async function init() {
+        const { data: { session } } = await supabase.auth.getSession();
+        currentUser = session?.user || null;
+        updateAuthUI();
+
+        supabase.auth.onAuthStateChange((_event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            loadData();
+        });
+
+        await loadData();
+
+        document.getElementById('authBtn').addEventListener('click', () => {
+            if (currentUser) {
+                supabase.auth.signOut();
+            } else {
+                document.getElementById('authModal').style.display = 'flex';
+            }
+        });
+
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab')) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = e.target.dataset.type;
+                renderSongs();
+            }
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('authModal').style.display = 'none';
+        });
+
+        document.getElementById('switchAuth').addEventListener('click', () => {
+            isRegistering = !isRegistering;
+            document.getElementById('modalTitle').textContent = isRegistering ? '注册' : '登录';
+            document.getElementById('submitAuth').textContent = isRegistering ? '注册' : '登录';
+            document.getElementById('switchAuth').textContent = isRegistering ? '已有账号？去登录' : '没有账号？注册';
+        });
+
+        document.getElementById('submitAuth').addEventListener('click', async () => {
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!/^\d{11}$/.test(phone)) {
+                return alert('请输入11位手机号！');
+            }
+            const fakeEmail = phone + '@phone.com';
+
+            if (isRegistering) {
+                const { error } = await supabase.auth.signUp({ email: fakeEmail, password });
+                if (error) return alert('注册失败：' + error.message);
+                alert('注册成功，请直接登录！');
+                isRegistering = false;
+                document.getElementById('modalTitle').textContent = '登录';
+                document.getElementById('submitAuth').textContent = '登录';
+                document.getElementById('switchAuth').textContent = '没有账号？注册';
+            } else {
+                const { error } = await supabase.auth.signInWithPassword({ email: fakeEmail, password });
+                if (error) return alert('登录失败：账号或密码错误');
+                document.getElementById('authModal').style.display = 'none';
+            }
+        });
+    }
+
+    function updateAuthUI() {
+        const btn = document.getElementById('authBtn');
+        if (currentUser) {
+            let displayName = currentUser.email ? currentUser.email.split('@')[0] : '用户';
+            btn.textContent = '退出 (' + displayName + ')';
+            btn.classList.add('logged-in');
+        } else {
+            btn.textContent = '登录';
+            btn.classList.remove('logged-in');
+        }
+    }
+
+    async function loadData() {
+        document.getElementById('songList').innerHTML = '<div style="text-align: center; color: #888; margin-top: 20px;">加载中...</div>';
+        const { data: songs } = await supabase.from('songs').select('*').order('id', { ascending: true });
+        const { data: votes } = await supabase.from('votes').select('*');
+        
+        allSongs = songs || [];
+        allVotes = votes || [];
+        renderSongs();
+    }
+
+    function renderSongs() {
+        const listDiv = document.getElementById('songList');
+        if (allSongs.length === 0) {
+            listDiv.innerHTML = '<div style="text-align: center; color: #888; margin-top: 20px;">还没有歌曲，请管理员去后台添加。</div>';
+            return;
+        }
+
+        const now = new Date();
+        let filteredVotes = allVotes;
+
+        if (currentTab === 'week') {
+            const day = now.getDay() || 7;
+            const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            filteredVotes = allVotes.filter(v => new Date(v.created_at) >= monday);
+        } else if (currentTab === 'month') {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            filteredVotes = allVotes.filter(v => new Date(v.created_at) >= firstDay);
+        }
+
+        const voteCounts = {};
+        filteredVotes.forEach(v => {
+            voteCounts[v.song_id] = (voteCounts[v.song_id] || 0) + 1;
+        });
+
+        const sortedSongs = [...allSongs].sort((a, b) => {
+            const countA = voteCounts[a.id] || 0;
+            const countB = voteCounts[b.id] || 0;
+            return countB - countA;
+        });
+
+        listDiv.innerHTML = sortedSongs.map((song, index) => {
+            const count = voteCounts[song.id] || 0;
+            const rank = index + 1;
+            return `
+                <div class="song-card">
+                    <div style="font-weight: bold; width: 20px; text-align: center; color: ${rank <= 3 ? '#e60012' : '#888'};">${rank}</div>
+                    <img class="cover" src="${song.cover || 'https://via.placeholder.com/50'}" alt="cover">
+                    <div class="info">
+                        <div class="title">${song.title}</div>
+                        <div class="meta">${song.producer || '未知P主'} · ${song.singer || '未知歌姬'} · ${song.platform || ''}</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                        <button class="vote-btn" onclick="vote(${song.id})">投票</button>
+                        <span class="vote-count">${count} 票</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function vote(songId) {
+        if (!currentUser) return alert('请先登录！');
+        const { data, error } = await supabase.rpc('cast_vote', { p_song_id: songId });
+        if (error) return alert('投票失败：' + error.message);
+        if (data.success === false) return alert(data.message);
+        
+        alert('投票成功！今日剩余：' + data.remaining + ' 票');
+        await loadData();
+    }
+
+    init();
+</script>
+</body>
+</html>sb_publishable_744GEcKjPqHvWI2Zd484LA_LJ-mjPBG';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
